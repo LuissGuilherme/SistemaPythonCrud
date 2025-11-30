@@ -67,5 +67,17 @@ class Database:
         self.cursor.execute("DELETE FROM songs WHERE id = ?", (song_id,))
         self.conn.commit()
 
+    def update_artist(self, artist_id, name, genre):
+        self.cursor.execute("UPDATE artists SET name = ?, genre = ? WHERE id = ?", (name, genre, artist_id))
+        self.conn.commit()
+
+    def update_song(self, song_id, title, duration, plays, artist_id):
+        self.cursor.execute("""
+            UPDATE songs 
+            SET title = ?, duration = ?, plays = ?, artist_id = ? 
+            WHERE id = ?
+        """, (title, duration, plays, artist_id, song_id))
+        self.conn.commit() 
+        
     def close(self):
         self.conn.close()

@@ -50,6 +50,7 @@ class MusicApp:
         self.refresh_artists()
 
     # Músicas
+    
     def setup_song_tab(self):
         frame_form = tk.Frame(self.tab_songs)
         frame_form.pack(pady=10)
@@ -67,21 +68,25 @@ class MusicApp:
         self.entry_plays.grid(row=2, column=1)
 
         tk.Label(frame_form, text="ID Artista:").grid(row=3, column=0)
-        # Idealmente seria um Combobox, mas simplificamos com ID manual para brevidade
         self.entry_art_id = tk.Entry(frame_form)
         self.entry_art_id.grid(row=3, column=1)
 
-        btn_add = tk.Button(frame_form, text="Adicionar Música", command=self.add_song)
-        btn_add.grid(row=4, columnspan=2, pady=5)
+        
+        btn_frame = tk.Frame(self.tab_songs)
+        btn_frame.pack(pady=5)
 
+        tk.Button(btn_frame, text="Adicionar", command=self.add_song).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Atualizar Selecionado", command=self.update_song_logic).pack(side=tk.LEFT, padx=5) # Botão Novo
+        tk.Button(btn_frame, text="Excluir", command=self.del_song).pack(side=tk.LEFT, padx=5)
+
+        
         cols = ("ID", "Título", "Duração", "Plays", "Artista")
         self.tree_songs = ttk.Treeview(self.tab_songs, columns=cols, show="headings")
         for col in cols:
             self.tree_songs.heading(col, text=col)
         self.tree_songs.pack(fill="both", expand=True, padx=10)
 
-        btn_del = tk.Button(self.tab_songs, text="Excluir Música", command=self.del_song)
-        btn_del.pack(pady=5)
+        self.tree_songs.bind("<<TreeviewSelect>>", self.on_song_click)
 
         self.refresh_songs()
 
@@ -137,3 +142,57 @@ class MusicApp:
             id_val = item['values'][0]
             self.db.delete_song(id_val)
             self.refresh_songs()
+
+    
+    def get_song_artist_id(self, artist_name):
+    
+        all_artists = self.db.get_artists()
+        for a in all_artists:
+            if a[1] == artist_name:
+                return a[0]
+        return ""
+
+    def on_song_click(self, event):
+        
+        sel = self.tree_songs.selection()
+        if sel:
+            item = self.tree_songs.item(sel[0])
+            vals = item['values']
+            # vals = [ID, Título, Duração, Plays, NomeArtista]
+            
+            self.entry_title.delete(0, tk.END)
+            self.entry_title.insert(0, vals[1])
+            
+            self.entry_dur.delete(0, tk.END)
+            self.entry_dur.insert(0, vals[2])
+            
+            self.entry_plays.delete(0, tk.END)
+            self.entry_plays.insert(0, vals[3])
+            
+            
+            art_id = self.get_song_artist_id(vals[4])
+            self.entry_art_id.delete(0, tk.END)
+            self.entry_art_id.insert(0, art_id)
+
+    def update_song_logic(self):
+        sel = self.tree_songs.selection()
+        if not sel:
+            messagebox.showwarning("Aviso", "Selecione uma música para atualizar")
+            return
+            
+        try:
+            item = self.tree_songs.item(sel[0])
+            song_id = item['values'][0] 
+
+            title = self.entry_title.get()
+            dur = self.entry_dur.get()
+            plays = int(self.entry_plays.get())
+            art_id = int(self.entry_art_id.get())
+
+            self.db.update_song(song_id, title, dur, plays, art_id)
+            
+            self.refresh_songs()
+            messagebox.showinfo("Sucesso", "Música atualizada!")
+            
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao atualizar: {e}")
